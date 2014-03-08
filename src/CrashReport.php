@@ -1,7 +1,6 @@
 <?php
 
-
-/**
+/*
  *
  *** PocketMine-MP Crash Archive ***
  *
@@ -16,7 +15,7 @@
  *
 */
 
-include_once("VersionString.php");
+require_once("VersionString.php");
 
 class CrashReport{
 	const TYPE_GENERIC = "generic";
