@@ -19,7 +19,7 @@ define("ARCHIVE_ROOT", realpath(dirname(__FILE__)) . DIRECTORY_SEPARATOR);
 
 require_once("src/config.php");
 require_once("src/TemplateStack.php");
-$buffer = b"binary string";
+
 ob_start("ob_gzhandler", 0, PHP_OUTPUT_HANDLER_CLEANABLE);
 
 $route = explode("&", ltrim($_SERVER["REQUEST_URI"], "/?"));
