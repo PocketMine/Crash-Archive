@@ -37,9 +37,19 @@ switch($path === "/" ? "/home" : $path){
 		break;
 	case "/submit":
 		if(isset($_POST["report"])){
-			if(isset($_FILES["reportFile"]) and $_FILES["reportFile"]["size"] > 0){
-				require_once("src/CrashReport.php");
+			require_once("src/CrashReport.php");
+			if(isset($_POST["reportPaste"]) and trim($_POST["reportPaste"]) !== ""){
+				$report = @new CrashReport($_POST["reportPaste"]);
+			}elseif(isset($_FILES["reportFile"]) and $_FILES["reportFile"]["size"] > 0){
 				$report = @new CrashReport(@file_get_contents($_FILES["reportFile"]["tmp_name"]));
+			}else{
+				$error = new Template("error");
+				$error->addTransform("message", "Please add your crash report file");
+				$error->addTransform("url", "/submit");
+				$page[] = $error;
+			}
+			if($report instanceof CrashReport){
+
 				if(!$report->isValid()){
 					$error = new Template("error");
 					$error->addTransform("message", "This crash report is not valid");
@@ -55,11 +65,6 @@ switch($path === "/" ? "/home" : $path){
 					$tpl->addTransform("attached_issue", "None");
 
 				}
-			}else{
-				$error = new Template("error");
-				$error->addTransform("message", "Please add your crash report file");
-				$error->addTransform("url", "/submit");
-				$page[] = $error;
 			}
 		}else{
 			$page[] = new Template("submit");
