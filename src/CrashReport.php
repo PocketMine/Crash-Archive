@@ -22,6 +22,7 @@ class CrashReport{
 	const TYPE_OUT_OF_MEMORY = "out_of_memory";
 	const TYPE_UNDEFINED_CALL = "undefined_call";
 	const TYPE_CLASS_VISIBILITY = "class_visibility";
+	const TYPE_INVALID_ARGUMENT = "invalid_argument";
 	const TYPE_UNKNOWN = "unknown";
 
 	private $report;
@@ -187,13 +188,22 @@ class CrashReport{
 			or substr($this->errorMessage, 0, 30) === "Cannot access private property"
 			or substr($this->errorMessage, 0, 32) === "Cannot access protected property"){
 			$this->reportType = self::TYPE_CLASS_VISIBILITY;
+		}elseif(substr($this->errorMessage, 0, 9) === "Argument "){
+			$this->reportType = self::TYPE_INVALID_ARGUMENT;
+			$line = str_replace(array("\\\\", "\\"), "/", $this->errorMessage);
+			if(($index = strrpos($line, "src/")) !== false){
+				$this->errorMessage = substr($line, 0, strpos($line, "called in ") + 10) . substr($line, $index);
+			}elseif(($index = strrpos($line, "plugins/")) !== false){
+				$this->errorMessage = substr($line, 0, strpos($line, "called in ") + 10) . substr($line, $index);
+				$this->causedByPlugin = true;
+			}
 		}elseif($this->errorType !== "E_ERROR" and $this->errorType !== "E_USER_ERROR" and $this->errorType !== "1"){
 			$this->reportType = self::TYPE_UNKNOWN; //Catch those PHP core crashes
 		}
 	}
 	
 	private function parseVersion(){
-		if(preg_match("/^PocketMine-MP version: ([A-Za-z0-9_\.\-]{1,})/", $this->reportLines[$this->lineOffset++], $matches) > 0){
+		if(preg_match("/^PocketMine-MP version: ([A-Za-z0-9_\\.\\-]{1,})/", $this->reportLines[$this->lineOffset++], $matches) > 0){
 			$this->version = new VersionString($matches[1]);
 		}else{
 			$this->valid = false;

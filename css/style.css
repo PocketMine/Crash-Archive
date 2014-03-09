@@ -4,6 +4,10 @@ body {
     padding-bottom: 20px;
 }
 
+img.img-middle{
+    vertical-align: middle;
+}
+
 /* Everything but the jumbotron gets side spacing for mobile first views */
 .header,
 .footer {

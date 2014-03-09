@@ -1,0 +1,22 @@
+<h1>Submit crash report</h1>
+<form action="/submit" method="post" enctype="multipart/form-data" role="form">
+    <input type="hidden" name="report" value="yes" />
+    <div class="input-group input-group-lg">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-user"></span></span>
+        <input class="form-control" type="text" name="name" placeholder="Your name" required autofocus />
+    </div>
+    <br/>
+    <div class="input-group input-group-lg">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-envelope"></span></span>
+        <input class="form-control" type="email" name="email" placeholder="E-mail (will be kept secret)" required />
+    </div>
+    <br/>
+    <div class="input-group input-group-lg">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-paperclip"></span></span>
+        <input class="form-control" type="file" name="reportFile"/>
+    </div>
+    <p>You can find the crash report on your PocketMine-MP folder.</p>
+
+    <input type="submit" class="btn btn-lg btn-primary btn-block" type="submit" value="Submit" style="margin-top:10px;"/>
+
+</form>

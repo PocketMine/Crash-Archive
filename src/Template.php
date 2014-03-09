@@ -37,15 +37,19 @@ class Template{
 	}
 
 	public function addTransform($find, $replace){
-		$this->transform['/\\{\\{'.$find.'\\}\\}/'] = $replace;
+		$this->transform['/\\{'.$find.'\\}/'] = $replace;
 	}
 
 
 	public function get(){
 		if(count($this->transform) > 0){
-			return preg_replace(array_keys($this->transform), array_values($this->transform), $this->html);
+			$html = $this->html;
+			foreach($this->transform as $find => $replace){
+				$html = preg_replace($find, $replace, $html);
+			}
+			return preg_replace('/\\{[A-Za-z_\\-]+\\}/', "", $html);
 		}else{
-			return $this->html;
+			return preg_replace('/\\{[A-Za-z_\\-]+\\}/', "", $this->html);
 		}
 	}
 
