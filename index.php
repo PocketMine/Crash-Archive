@@ -30,8 +30,8 @@ ob_start("ob_gzhandler", 0, PHP_OUTPUT_HANDLER_CLEANABLE);
 $page = new TemplateStack();
 $page[] = new Template("header");
 
-
-switch($_SERVER["PATH_INFO"] === "/" ? "/home" : $_SERVER["PATH_INFO"]){
+$path = isset($_SERVER["REQUEST_URI"]) ? $_SERVER["REQUEST_URI"] : $_SERVER["PATH_INFO"];
+switch($path === "/" ? "/home" : $path){
 	case "/home":
 		$page[] = new Template("home");
 		break;
@@ -52,6 +52,7 @@ switch($_SERVER["PATH_INFO"] === "/" ? "/home" : $_SERVER["PATH_INFO"]){
 					$tpl->addTransform("crash_id", mt_rand(100, 65535)); //placeholder :P
 					$tpl->addTransform("email_hash", md5($_POST["email"]));
 					$tpl->addTransform("name", clean($_POST["name"]));
+					$tpl->addTransform("attached_issue", "None");
 
 				}
 			}else{
