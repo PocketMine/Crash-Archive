@@ -48,8 +48,7 @@ switch($path === "/" ? "/home" : $path){
 				$error->addTransform("url", "/submit");
 				$page[] = $error;
 			}
-			if($report instanceof CrashReport){
-
+			if(isset($report) and $report instanceof CrashReport){
 				if(!$report->isValid()){
 					$error = new Template("error");
 					$error->addTransform("message", "This crash report is not valid");

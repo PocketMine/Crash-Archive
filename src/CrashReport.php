@@ -23,6 +23,7 @@ class CrashReport{
 	const TYPE_UNDEFINED_CALL = "undefined_call";
 	const TYPE_CLASS_VISIBILITY = "class_visibility";
 	const TYPE_INVALID_ARGUMENT = "invalid_argument";
+	const TYPE_CLASS_NOT_FOUND = "class_not_found";
 	const TYPE_UNKNOWN = "unknown";
 
 	private $report;
@@ -160,6 +161,9 @@ class CrashReport{
 								}else{
 									$this->errorFile = "NO_FILE";									
 								}
+								if(strpos($this->errorFile, "eval()") !== false){
+									$this->causedByPlugin = true;
+								}
 								break;
 						}
 					}
@@ -188,6 +192,8 @@ class CrashReport{
 			or substr($this->errorMessage, 0, 30) === "Cannot access private property"
 			or substr($this->errorMessage, 0, 32) === "Cannot access protected property"){
 			$this->reportType = self::TYPE_CLASS_VISIBILITY;
+		}elseif(substr($this->errorMessage, -10) === " not found"){
+			$this->reportType = self::TYPE_CLASS_NOT_FOUND;
 		}elseif(substr($this->errorMessage, 0, 9) === "Argument "){
 			$this->reportType = self::TYPE_INVALID_ARGUMENT;
 			$line = str_replace(array("\\\\", "\\"), "/", $this->errorMessage);
