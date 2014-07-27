@@ -19,6 +19,7 @@ require_once("VersionString.php");
 
 class CrashReport{
 	const TYPE_GENERIC = "generic";
+	const TYPE_OPERAND_TYPE = "out_of_memory";
 	const TYPE_OUT_OF_MEMORY = "out_of_memory";
 	const TYPE_UNDEFINED_CALL = "undefined_call";
 	const TYPE_CLASS_VISIBILITY = "class_visibility";
@@ -27,7 +28,8 @@ class CrashReport{
 	const TYPE_UNKNOWN = "unknown";
 
 	private $report;
-	private $reportLines;
+	/** @var stdClass */
+	private $data;
 	private $lineOffset;
 	private $valid;
 	
@@ -40,12 +42,12 @@ class CrashReport{
 	private $errorLine;
 	private $errorMessage;
 	private $version;
+	private $apiVersion;
 	
 	
 	public function __construct($reportStr){
 		$this->report = $reportStr;
 		$this->trimHead();
-		$this->reportLines = array_map("trim", explode("\n", $this->report));
 		$this->parse();
 	}
 	
@@ -76,6 +78,10 @@ class CrashReport{
 	public function getVersion(){
 		return $this->version;
 	}
+
+	public function getApiVersion(){
+		return $this->apiVersion;
+	}
 	
 	public function getVersionString(){
 		return (string) $this->version;
@@ -91,89 +97,39 @@ class CrashReport{
 	
 	protected function trimHead(){
 		$this->report = trim($this->report, "\r\n\t` ");
+		$this->report = substr($this->report, (int) strpos($this->report, "===BEGIN CRASH DUMP==="));
 	}
 	
 	protected function parse(){
-		$this->lineOffset = 0;
 		$this->reportType = self::TYPE_GENERIC;
 		$this->causedByPlugin = false;
 		$this->valid = true;
+		$data = @json_decode(zlib_decode(base64_decode(str_replace(["===BEGIN CRASH DUMP===", "===END CRASH DUMP==="], "", $this->report)), false));
+		if(!is_object($data)){
+			$this->valid = false;
+			return;
+		}
+		$this->data = $data;
+
 		$this->parseDate();
-		$this->parseHeader();
+		$this->parseError();
 		$this->classifyMessage();
 		$this->parseVersion();
 	}
 	
 	private function parseDate(){
-		$line = ltrim($this->reportLines[$this->lineOffset++], "# ");
-		if(substr($line, 0, 24) !== "PocketMine-MP Error Dump"){
-			$this->valid = false;
-		}else{
-			$this->reportDate = date_create_from_format("D M j H:i:s T Y", substr($line, 25))->getTimestamp();
-		}
+		$this->reportDate = isset($this->data->time) ? $this->data->time : time();
 	}
 	
-	private function parseHeader(){
-		$i = 1;
-		$status = 0;
-		while(isset($this->reportLines[$i]) and substr($line = $this->reportLines[$i], 0, 21) !== "PocketMine-MP version"){
-			++$i;
-			++$this->lineOffset;
-			if($line === ""){
-				$status = 0;
-				continue;
-			}
-			
-			switch($status){
-				case 0: //Status selection mode
-					$section = substr($line, 0, (int) strpos($line, ":") + (int) strpos($line, "."));
-					if($section === "Error"){
-						$status = 1;
-					}elseif($section === "Code"){
-						$status = 2;
-					}elseif($section === "Backtrace"){
-						$status = 3;
-					}elseif($section === "THIS ERROR WAS CAUSED BY A PLUGIN"){
-						$this->causedByPlugin = true;
-					}
-					break;
-					
-				case 1: //Error info
-					if(preg_match("#^'([a-z]{1,})' => (.*),$#", $line, $matches) > 0){
-						$matches[2] = trim($matches[2], "',");
-						switch($matches[1]){
-							case "type":
-								$this->errorType = $matches[2];
-								break;
-							case "message":
-								$this->errorMessage = $matches[2];
-								break;
-							case "line":
-								$this->errorLine = (int) $matches[2];
-								break;
-							case "file":
-								$file = str_replace(array("\\\\", "\\"), "/", $matches[2]);
-								if(($index = strrpos($file, "src/")) !== false){
-									$this->errorFile = substr($file, $index);
-								}elseif(($index = strrpos($file, "plugins/")) !== false){
-									$this->errorFile = substr($file, $index);
-									$this->causedByPlugin = true;
-								}else{
-									$this->errorFile = "NO_FILE";									
-								}
-								if(strpos($this->errorFile, "eval()") !== false){
-									$this->causedByPlugin = true;
-								}
-								break;
-						}
-					}
-					break;
-				case 2: //Code
-					break;
-				case 3: //Backtrace
-					break;
-			}
+	private function parseError(){
+		if(isset($this->data->plugin) and $this->data->plugin !== false){
+			$this->causedByPlugin = true;
 		}
+
+		$this->errorType = $this->data->error->type;
+		$this->errorMessage = $this->data->error->message;
+		$this->errorLine = $this->data->error->line;
+		$this->errorFile = $this->data->error->file;
 	}
 	
 	private function classifyMessage(){
@@ -181,8 +137,10 @@ class CrashReport{
 			$this->valid = false;
 			return;
 		}
-		
-		if(substr($this->errorMessage, 0, 22) === "Allowed memory size of"){
+
+		if(substr($this->errorMessage, 0, 25) === "Unsupported operand types"){
+			$this->reportType = self::TYPE_OPERAND_TYPE;
+		}elseif(substr($this->errorMessage, 0, 22) === "Allowed memory size of"){
 			$this->reportType = self::TYPE_OUT_OF_MEMORY;
 		}elseif(substr($this->errorMessage, 0, 17) === "Call to undefined"
 			or substr($this->errorMessage, 0, 16) === "Call to a member"){
@@ -196,7 +154,7 @@ class CrashReport{
 			$this->reportType = self::TYPE_CLASS_NOT_FOUND;
 		}elseif(substr($this->errorMessage, 0, 9) === "Argument "){
 			$this->reportType = self::TYPE_INVALID_ARGUMENT;
-			$line = str_replace(array("\\\\", "\\"), "/", $this->errorMessage);
+			$line = str_replace(["\\\\", "\\"], "/", $this->errorMessage);
 			if(($index = strrpos($line, "src/")) !== false){
 				$this->errorMessage = substr($line, 0, strpos($line, "called in ") + 10) . substr($line, $index);
 			}elseif(($index = strrpos($line, "plugins/")) !== false){
@@ -209,8 +167,9 @@ class CrashReport{
 	}
 	
 	private function parseVersion(){
-		if(preg_match("/^PocketMine-MP version: ([A-Za-z0-9_\\.\\-]{1,})/", $this->reportLines[$this->lineOffset++], $matches) > 0){
-			$this->version = new VersionString($matches[1]);
+		if(isset($this->data->general->version)){
+			$this->version = new VersionString($this->data->general->version.($this->data->general->build > 0 ? "-".$this->data->general->build:""));
+			$this->apiVersion = $this->data->general->api;
 		}else{
 			$this->valid = false;
 		}

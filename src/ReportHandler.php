@@ -17,13 +17,15 @@
 
 class ReportHandler{
 	private $report;
+	private $isAPI;
 
-	public function __construct(CrashReport $report){
+	public function __construct(CrashReport $report, $isAPI = false){
 		$this->report = $report;
+		$this->isAPI = $isAPI;
 	}
 
 	public function showDetails(TemplateStack $stack){
-		$tpl = new Template("crashDetails");
+		$tpl = new Template("crashDetails", $this->isAPI);
 
 		$warnings = "";
 
@@ -37,6 +39,9 @@ class ReportHandler{
 
 		//Error information
 		switch($this->report->getReportType()){
+			case CrashReport::TYPE_OPERAND_TYPE:
+				$errorTitle = "Operand type error";
+				break;
 			case CrashReport::TYPE_CLASS_VISIBILITY:
 				$errorTitle = "Class visibility error";
 				break;

@@ -18,11 +18,13 @@
 class Template{
 	private $html;
 	private $name;
+	private $isAPI;
 	private $transform = array();
 
-	public function __construct($name){
+	public function __construct($name, $isAPI = false){
 		$this->name = preg_replace("/[^A-Za-z0-9_\\-]/", "", $name);
-		$this->html = (string) @file_get_contents(ARCHIVE_ROOT . "src/templates/{$this->name}.html");
+		$this->isAPI = (bool) $isAPI;
+		$this->html = (string) @file_get_contents(ARCHIVE_ROOT . "src/templates/{$this->name}.".($this->isAPI ? "json":"html"));
 	}
 
 	public function getName(){
@@ -45,7 +47,7 @@ class Template{
 		if(count($this->transform) > 0){
 			$html = $this->html;
 			foreach($this->transform as $find => $replace){
-				$html = preg_replace($find, $replace, $html);
+				$html = preg_replace($find, $this->isAPI ? str_replace("\\", "\\\\\\", $replace) : $replace, $html);
 			}
 			return preg_replace('/\\{[A-Za-z_\\-]+\\}/', "", $html);
 		}else{

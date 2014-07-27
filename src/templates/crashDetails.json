@@ -1,0 +1,17 @@
+{
+    "crashId": {crash_id},
+    "crashUrl": "http://crash.pocketmine.net/view/{crash_id}",
+    "errorTitle": "{error_title}",
+    "attachedIssue": "{attached_issue}",
+    "submitter": {
+        "name": "{name}",
+        "avatar": "http://www.gravatar.com/avatar/{email_hash}"
+    },
+    "info": {
+        "version": "{pocketmine_version}",
+        "level": "{error_level}",
+        "file": "{error_file}",
+        "line": "{error_line}",
+        "message": "{error_message}"
+    }
+}

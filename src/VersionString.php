@@ -19,6 +19,10 @@
  *
 */
 
+
+/**
+ * Manages PocketMine-MP version strings, and compares them
+ */
 class VersionString{
 	public static $stageOrder = array(
 		"alpha" => 0,
@@ -30,10 +34,11 @@ class VersionString{
 	);
 	private $stage;
 	private $major;
-	private $release;
+	private $build;
 	private $minor;
 	private $development = false;
 	private $generation;
+
 	public function __construct($version){
 		if(is_int($version)){
 			$this->minor = $version & 0x1F;
@@ -41,12 +46,17 @@ class VersionString{
 			$this->generation = ($version >> 9) & 0x0F;
 			$this->stage = array_search(($version >> 13) & 0x0F, VersionString::$stageOrder, true);
 		}else{
-			$version = preg_split("/([A-Za-z]*)[ _\-]([0-9]*)\.([0-9]*)\.{0,1}([0-9]*)(dev|)/", $version, -1, PREG_SPLIT_DELIM_CAPTURE);
+			$version = preg_split("/([A-Za-z]*)[ _\\-]([0-9]*)\\.([0-9]*)\\.{0,1}([0-9]*)(dev|)(-[\\0-9]{1,}|)/", $version, -1, PREG_SPLIT_DELIM_CAPTURE);
 			$this->stage = strtolower($version[1]); //0-15
 			$this->generation = (int) $version[2]; //0-15
 			$this->major = (int) $version[3]; //0-15
 			$this->minor = (int) $version[4]; //0-31
-			$this->development = $version[5] === "dev" ? true:false;
+			$this->development = $version[5] === "dev" ? true : false;
+			if($version[6] !== ""){
+				$this->build = intval(substr($version[6], 1));
+			}else{
+				$this->build = 0;
+			}
 		}
 	}
 
@@ -71,15 +81,19 @@ class VersionString{
 	}
 
 	public function getRelease(){
-		return $this->generation . "." . $this->major . "." . $this->minor;
+		return $this->generation . "." . $this->major . ($this->minor > 0 ? "." . $this->minor : "");
 	}
-	
+
+	public function getBuild(){
+		return $this->build;
+	}
+
 	public function isDev(){
 		return $this->development === true;
 	}
-	
-	public function get(){
-		return ucfirst($this->stage) . "_" . $this->getRelease() . ($this->development === true ? "dev":"");
+
+	public function get($build = false){
+		return ucfirst($this->stage) . "_" . $this->getRelease() . ($this->development === true ? "dev" : "") . (($this->build > 0 and $build === true) ? "-" . $this->build : "");
 	}
 
 	public function __toString(){
@@ -99,6 +113,10 @@ class VersionString{
 			return -1; //Target is older
 		}elseif($number < $tNumber){
 			return 1; //Target is newer
+		}elseif($target->getBuild() > $this->getBuild()){
+			return 1;
+		}elseif($target->getBuild() < $this->getBuild()){
+			return -1;
 		}else{
 			return 0; //Same version
 		}
