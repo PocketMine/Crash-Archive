@@ -30,7 +30,6 @@ class CrashReport{
 	private $report;
 	/** @var stdClass */
 	private $data;
-	private $lineOffset;
 	private $valid;
 	
 	private $reportType;
@@ -49,6 +48,10 @@ class CrashReport{
 		$this->report = $reportStr;
 		$this->trimHead();
 		$this->parse();
+	}
+
+	public function getEncoded(){
+		return "===BEGIN CRASH DUMP===" . PHP_EOL . base64_encode(zlib_encode(json_encode($this->data, JSON_UNESCAPED_SLASHES), ZLIB_ENCODING_DEFLATE, 9)) . PHP_EOL . "===END CRASH DUMP===";
 	}
 	
 	public function isValid(){

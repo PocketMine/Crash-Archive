@@ -21,6 +21,24 @@ function clean($str){
 	return preg_replace('#[^A-Za-z0-9_\\-\\.\\,\\;\\:/\\#\\(\\)\\\\ ]#', "", $str);
 }
 
+function getNextId(){ //placeholder for database, binary search algorithm for ID
+	$min = 1;
+	$max = 2147483646;
+
+	while($max >= $min){
+		$mid = ($min + $max) >> 1;
+		if(file_exists("reports/". sha1($mid . SECRET_SALT) . ".log")){
+			$min = $mid + 1;
+		}elseif($max !== $min){
+			$max = $mid;
+		}else{
+			return $mid;
+		}
+	}
+
+	return -1;
+}
+
 
 require_once("src/config.php");
 require_once("src/TemplateStack.php");
@@ -53,11 +71,36 @@ switch($main === "" ? "home" : $main){
 			$page[] = $error;
 			break;
 		}
+
 		$reportId = (int) $path[0];
-		$error = new Template("error", $isAPI);
-		$error->addTransform("message", "Report not found");
-		$error->addTransform("url", "/home");
-		$page[] = $error;
+
+		$path = "reports/". sha1($reportId . SECRET_SALT) . ".log";
+		if(!file_exists($path)){
+			$error = new Template("error", $isAPI);
+			$error->addTransform("message", "Report not found");
+			$error->addTransform("url", "/home");
+			$page[] = $error;
+			break;
+		}
+
+		$data = json_decode(@file_get_contents($path), true);
+
+		require_once("src/CrashReport.php");
+		$report = @new CrashReport($data["report"]);
+		if(!$report->isValid()){
+			$error = new Template("error", $isAPI);
+			$error->addTransform("message", "This crash report is not valid");
+			$error->addTransform("url", "/home");
+			$page[] = $error;
+		}else{
+			require_once("src/ReportHandler.php");
+			$handler = new ReportHandler($report, $isAPI);
+			$tpl = $handler->showDetails($page);
+			$tpl->addTransform("crash_id", $reportId);
+			$tpl->addTransform("email_hash", md5($data["email"]));
+			$tpl->addTransform("name", $data["name"]);
+			$tpl->addTransform("attached_issue", "None");
+		}
 
 		break;
 	case "submit":
@@ -83,14 +126,31 @@ switch($main === "" ? "home" : $main){
 					require_once("src/ReportHandler.php");
 					$handler = new ReportHandler($report, $isAPI);
 					$tpl = $handler->showDetails($page);
-					$reportId = mt_rand(100, 65535); //placeholder :P
-					//header("Location: /view/$reportId" . ($isAPI ? "/api":""));
+					$encoded = $report->getEncoded();
+					//$hash = $report->getDate() . $encoded . microtime(true);
+					$reportId = getNextId(); //placeholder :P
+					$data = [
+						"report" => $encoded,
+						"reportId" => $reportId,
+						"email" => $_POST["email"],
+						"name" => clean($_POST["name"]),
+						"attachedIssue" => false
+					];
+
+					@file_put_contents("reports/". sha1($reportId . SECRET_SALT) . ".log", json_encode($data));
+					header("Location: /view/$reportId" . ($isAPI ? "/api":""));
 					$tpl->addTransform("crash_id", $reportId);
 					$tpl->addTransform("email_hash", md5($_POST["email"]));
 					$tpl->addTransform("name", clean($_POST["name"]));
 					$tpl->addTransform("attached_issue", "None");
 
+
 				}
+			}else{
+				$error = new Template("error", $isAPI);
+				$error->addTransform("message", "This crash report is not valid");
+				$error->addTransform("url", "/submit");
+				$page[] = $error;
 			}
 		}else{
 			$page[] = new Template("submit", $isAPI);

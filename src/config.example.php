@@ -8,5 +8,6 @@ define("MYSQL_USER", "example");
 define("MYSQL_PASSWORD", "hunter2");
 define("MYSQL_DATABASE", "crash_archive");
 
+define("SECRET_SALT", "SET_THIS_TO_A_RANDOM_STRING");
 
 define("ENABLE_GITHUB_CALLBACK", true);
