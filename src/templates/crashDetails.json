@@ -18,6 +18,6 @@
     "system": {
         "php": "{php_version}",
         "os": "{os}",
-        "banner": "{banner}"
+        "banner": "{uname}"
     }
 }

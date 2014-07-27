@@ -64,7 +64,7 @@ class ReportHandler{
 				$errorTitle = "Class not found error";
 				break;
 			case CrashReport::TYPE_UNKNOWN:
-				$errorTitle = "<b>Unknown error</b>";
+				$errorTitle = "Unknown error";
 				break;
 			default:
 				$errorTitle = clean(ucfirst($this->report->getReportType())) . " error";
