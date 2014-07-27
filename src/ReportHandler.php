@@ -111,7 +111,7 @@ class ReportHandler{
 			}
 			$tpl->addTransform("plugins", $plugins);
 		} else {
-			$tpl->addTransform("plugins", json_encode($this->report->getPlugins()));
+			$tpl->addTransform("plugins", json_encode($this->report->getPlugins(), JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 		}
 		if($isAPI === false){
 			$settings = "";
