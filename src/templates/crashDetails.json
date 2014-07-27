@@ -15,8 +15,8 @@
         "line": "{error_line}",
         "message": "{error_message}"
     },
-    "plugins": {plugins},
-    "settings": {settings},
+    "plugins": "{plugins}",
+    "settings": "{settings}",
     "system": {
         "php": "{php_version}",
         "os": "{os}",
