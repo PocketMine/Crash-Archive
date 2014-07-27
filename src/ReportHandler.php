@@ -168,7 +168,7 @@ class ReportHandler{
 
 		}
 		if($this->isAPI === true){
-			json_encode($settings);
+			$settings = json_encode($settings);
 		}
 		$tpl->addTransform("settings", $settings);
 
