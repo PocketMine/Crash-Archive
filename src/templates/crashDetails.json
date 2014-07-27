@@ -9,9 +9,15 @@
     },
     "info": {
         "version": "{pocketmine_version}",
+        "api_version": "{api_version}",
         "level": "{error_level}",
         "file": "{error_file}",
         "line": "{error_line}",
         "message": "{error_message}"
+    },
+    "system": {
+        "php": "{php_version}",
+        "os": "{os}",
+        "banner": "{banner}"
     }
 }

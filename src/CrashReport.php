@@ -19,7 +19,7 @@ require_once("VersionString.php");
 
 class CrashReport{
 	const TYPE_GENERIC = "generic";
-	const TYPE_OPERAND_TYPE = "out_of_memory";
+	const TYPE_OPERAND_TYPE = "operand_type";
 	const TYPE_OUT_OF_MEMORY = "out_of_memory";
 	const TYPE_UNDEFINED_CALL = "undefined_call";
 	const TYPE_CLASS_VISIBILITY = "class_visibility";
@@ -80,6 +80,38 @@ class CrashReport{
 	
 	public function getVersion(){
 		return $this->version;
+	}
+
+	public function getCode(){
+		return $this->data->code;
+	}
+
+	public function getProperties(){
+		return $this->data->{"server.properties"};
+	}
+
+	public function getSettings(){
+		return $this->data->{"pocketmine.yml"};
+	}
+
+	public function getPlugins(){
+		return $this->data->plugins;
+	}
+
+	public function getTrace(){
+		return $this->data->trace;
+	}
+
+	public function getPHPVersion(){
+		return $this->data->general->php;
+	}
+
+	public function getOS(){
+		return $this->data->general->os;
+	}
+
+	public function getUname(){
+		return $this->data->general->uname;
 	}
 
 	public function getApiVersion(){

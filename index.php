@@ -63,6 +63,7 @@ switch($main === "" ? "home" : $main){
 	case "home":
 		$page[] = new Template("home", $isAPI);
 		break;
+	case "download":
 	case "view":
 		if(!isset($path[0])){
 			$error = new Template("error", $isAPI);
@@ -84,6 +85,15 @@ switch($main === "" ? "home" : $main){
 		}
 
 		$data = json_decode(@file_get_contents($path), true);
+
+		if($main === "download"){
+			$download = $data["report"];
+			header("Content-Type: application/octet-stream");
+			header('Content-Disposition: attachment; filename="'.$reportId.'.log"');
+			header("Content-Length: " . strlen($download));
+			echo $download;
+			exit();
+		}
 
 		require_once("src/CrashReport.php");
 		$report = @new CrashReport($data["report"]);
