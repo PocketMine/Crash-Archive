@@ -35,11 +35,13 @@ class CrashReport{
 	private $reportType;
 	private $reportDate;
 	private $causedByPlugin;
+	private $causingPlugin = null;
 	
 	private $errorType;
 	private $errorFile;
 	private $errorLine;
 	private $errorMessage;
+	/** @var VersionString */
 	private $version;
 	private $apiVersion;
 	
@@ -129,6 +131,10 @@ class CrashReport{
 	public function isCausedByPlugin(){
 		return $this->causedByPlugin === true;
 	}
+
+	public function getCausingPlugin(){
+		return $this->causingPlugin;
+	}
 	
 	protected function trimHead(){
 		$this->report = trim($this->report, "\r\n\t` ");
@@ -159,6 +165,9 @@ class CrashReport{
 	private function parseError(){
 		if(isset($this->data->plugin) and $this->data->plugin !== false){
 			$this->causedByPlugin = true;
+			if($this->data->plugin !== true){
+				$this->causingPlugin = clean($this->data->plugin);
+			}
 		}
 
 		$this->errorType = $this->data->error->type;

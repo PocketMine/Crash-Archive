@@ -30,7 +30,7 @@ class ReportHandler{
 		$warnings = "";
 
 		//General information
-		$tpl->addTransform("pocketmine_version", $this->report->getVersionString());
+		$tpl->addTransform("pocketmine_version", $this->report->getVersion()->get(true));
 		$tpl->addTransform("api_version", $this->report->getApiVersion());
 
 		$tpl->addTransform("php_version", $this->report->getPHPVersion());
@@ -39,7 +39,7 @@ class ReportHandler{
 
 		$tpl->addTransform("caused_by_plugin", $this->report->isCausedByPlugin() === true ? "<b>YES</b>" : "Not directly");
 		if($this->report->isCausedByPlugin()){
-			$warnings .= '<div class="alert alert-warning" style="margin-top:10px;margin-bottom:0px;"><strong>Warning!</strong> This crash was caused by a plugin. Please contact the original plugin author.</div>';
+			$warnings .= '<div class="alert alert-warning" style="margin-top:10px;margin-bottom:0px;"><strong>Warning!</strong> This crash was caused by '. ($this->report->getCausingPlugin() !== null ? "the <b>".$this->report->getCausingPlugin()."</b>" : "a") .' plugin. Please contact the original plugin author.</div>';
 		}
 		$tpl->addTransform("date", date("l d/m/Y H:i:s", $this->report->getDate()));
 

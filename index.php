@@ -153,8 +153,6 @@ switch($main === "" ? "home" : $main){
 					$tpl->addTransform("email_hash", md5($_POST["email"]));
 					$tpl->addTransform("name", clean($_POST["name"]));
 					$tpl->addTransform("attached_issue", "None");
-
-
 				}
 			}else{
 				$error = new Template("error", $isAPI);
