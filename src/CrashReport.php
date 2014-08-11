@@ -194,7 +194,7 @@ class CrashReport{
 			or substr($this->errorMessage, 0, 30) === "Cannot access private property"
 			or substr($this->errorMessage, 0, 32) === "Cannot access protected property"){
 			$this->reportType = self::TYPE_CLASS_VISIBILITY;
-		}elseif(substr($this->errorMessage, -10) === " not found"){
+		}elseif(substr($this->errorMessage, -10) === " not found" or substr($this->errorMessage, -27) === "\\spl\\SplClassLoader.php:156"){
 			$this->reportType = self::TYPE_CLASS_NOT_FOUND;
 		}elseif(substr($this->errorMessage, 0, 9) === "Argument "){
 			$this->reportType = self::TYPE_INVALID_ARGUMENT;
@@ -206,7 +206,7 @@ class CrashReport{
 				$this->causedByPlugin = true;
 			}
 		}elseif($this->errorType !== "E_ERROR" and $this->errorType !== "E_USER_ERROR" and $this->errorType !== "1"){
-			$this->reportType = self::TYPE_UNKNOWN; //Catch those PHP core crashes
+			$this->reportType = self::TYPE_UNKNOWN; //Catch those PHP core crashes)
 		}
 	}
 	
