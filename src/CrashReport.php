@@ -127,11 +127,44 @@ class CrashReport{
 	public function getReportType(){
 		return $this->reportType;
 	}
+
+	public function getReportName(){
+		switch($this->getReportType()){
+			case CrashReport::TYPE_OPERAND_TYPE:
+				$errorTitle = "Operand type error";
+				break;
+			case CrashReport::TYPE_CLASS_VISIBILITY:
+				$errorTitle = "Class visibility error";
+				break;
+			case CrashReport::TYPE_INVALID_ARGUMENT:
+				$errorTitle = "Invalid argument error";
+				break;
+			case CrashReport::TYPE_OUT_OF_MEMORY:
+				$errorTitle = "Out of memory error";
+				break;
+			case CrashReport::TYPE_UNDEFINED_CALL:
+				$errorTitle = "Undefined call error";
+				break;
+			case CrashReport::TYPE_CLASS_NOT_FOUND:
+				$errorTitle = "Class not found error";
+				break;
+			case CrashReport::TYPE_UNKNOWN:
+				$errorTitle = "Unknown error";
+				break;
+			default:
+				$errorTitle = clean(ucfirst($this->getReportType())) . " error";
+		}
+
+		return $errorTitle . (($this->isCausedByPlugin() and $this->getCausingPlugin() !== null) ? " by ".$this->getCausingPlugin() . " plugin" : "");
+	}
 	
 	public function isCausedByPlugin(){
 		return $this->causedByPlugin === true;
 	}
 
+	/**
+	 * @return string|null
+	 */
 	public function getCausingPlugin(){
 		return $this->causingPlugin;
 	}
@@ -184,10 +217,13 @@ class CrashReport{
 
 		if(substr($this->errorMessage, 0, 25) === "Unsupported operand types"){
 			$this->reportType = self::TYPE_OPERAND_TYPE;
-		}elseif(substr($this->errorMessage, 0, 22) === "Allowed memory size of"){
+		}elseif(substr($this->errorMessage, 0, 22) === "Allowed memory size of"
+			or substr($this->errorMessage, 0, 13) === "Out of memory"){
 			$this->reportType = self::TYPE_OUT_OF_MEMORY;
 		}elseif(substr($this->errorMessage, 0, 17) === "Call to undefined"
-			or substr($this->errorMessage, 0, 16) === "Call to a member"){
+			or substr($this->errorMessage, 0, 16) === "Call to a member"
+			or substr($this->errorMessage, 0, 36) === "Trying to get property of non-object"
+			or substr($this->errorMessage, 0, 36) === "Access to undeclared static property"){
 			$this->reportType = self::TYPE_UNDEFINED_CALL;
 		}elseif(substr($this->errorMessage, 0, 22) === "Call to private method"
 			or substr($this->errorMessage, 0, 24) === "Call to protected method"

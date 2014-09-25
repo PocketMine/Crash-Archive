@@ -10,4 +10,7 @@ define("MYSQL_DATABASE", "crash_archive");
 
 define("SECRET_SALT", "SET_THIS_TO_A_RANDOM_STRING");
 
+define("ROOT_DOMAIN", "crash.pocketmine.net");
+define("WEBHOOK_URL", null);
+
 define("ENABLE_GITHUB_CALLBACK", true);

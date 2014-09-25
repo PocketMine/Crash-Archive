@@ -42,6 +42,7 @@ function getNextId(){ //placeholder for database, binary search algorithm for ID
 
 require_once("src/config.php");
 require_once("src/TemplateStack.php");
+require_once("src/Database.php");
 
 ob_start("ob_gzhandler", 0, PHP_OUTPUT_HANDLER_CLEANABLE);
 
@@ -59,9 +60,13 @@ $main = array_shift($path);
 $page = new TemplateStack();
 $page[] = new Template("header", $isAPI);
 
+
 switch($main === "" ? "home" : $main){
 	case "home":
-		$page[] = new Template("home", $isAPI);
+		$page[] = $tpl = new Template("home", $isAPI);
+		if($isAPI){
+			$tpl->addTransform("lastId", getNextId() - 1);
+		}
 		break;
 	case "download":
 	case "view":
@@ -113,6 +118,109 @@ switch($main === "" ? "home" : $main){
 		}
 
 		break;
+	case "search":
+		if(count($_POST) > 0 or count($path) > 1){
+			$db = new Database();
+			$order = "id DESC";
+			$reports = null;
+			$cleanDuplicated = true;
+
+			if($path[0] === "plugin"){
+				$plugin = clean(str_replace(['"', "'"], "", (isset($_POST["plugin"]) ? $_POST["plugin"]:$path[1])));
+				$reports = $db->getReports("plugin = '$plugin'", $order);
+			}elseif($path[0] === "report"){
+				$report = $db->getReport((int) (isset($_POST["id"]) ? $_POST["id"]:$path[1]));
+				if($report !== null and count($report) > 0){
+					$message = "0x".bin2hex($report["message"]);
+					$file = "0x".bin2hex($report["file"]);
+					$reports = $db->getReports("message = $message AND file = $file AND line = ".intval($report["line"]), $order);
+					$cleanDuplicated = false;
+				}
+			}elseif(count($_POST) > 0){
+				if($path[0] === "id"){
+					header("Location: /view/". intval($_POST["id"]) . ($isAPI ? "/api":""));
+					exit();
+				}elseif($path[0] === "build"){
+					$operator = "=";
+					if($_POST["type"] === "greater"){
+						$operator = ">";
+					}elseif($_POST["type"] === "less"){
+						$operator = "<";
+					}
+					$buildId = (int) $_POST["build"];
+					$reports = $db->getReports("build $operator $buildId", $order);
+				}
+			}
+
+			if(!($reports instanceof \mysqli_result)){
+				$error = new Template("error", $isAPI);
+				$error->addTransform("message", "Invalid search");
+				$error->addTransform("url", "/search");
+				$page[] = $error;
+				break;
+			}
+		}else{
+			$page[] = new Template("search", $isAPI);
+			break;
+		}
+	case "list":
+		$order = "id DESC";
+		if(!($reports instanceof \mysqli_result)){
+			$cleanDuplicated = true;
+			$db = new Database();
+			if(!isset($path[0])){
+				$reports = $db->getReports(null, $order);
+			}else{
+				$range = explode("-", $path[0]);
+				if(count($range) === 1){
+					$startId = (int) $range[0];
+					$reports = $db->getReports("id >= $startId", $order);
+				}elseif(count($range) === 2){
+					$startId = (int) $range[0];
+					$endId = (int) $range[1];
+					if($endId >= $startId){
+						$reports = $db->getReports("id >= $startId AND id <= $endId", $order);
+					}
+				}
+			}
+		}
+
+		if(!($reports instanceof \mysqli_result)){
+			$error = new Template("error", $isAPI);
+			$error->addTransform("message", "Invalid list");
+			$error->addTransform("url", "/list");
+			$page[] = $error;
+			break;
+		}
+
+		$results = "";
+		$tpl = new Template("searchResults", $isAPI);
+		$count = 0;
+		$dup = [];
+
+		while(($report = $reports->fetch_assoc()) and $count < 500){
+			$message = $report["message"];
+			$index = $report["message"]."__".$report["line"]."__".$report["file"];
+			if(isset($dup[$index])){
+				$dup[$index][] = $report["id"];
+				if($cleanDuplicated){
+					continue;
+				}
+			}else{
+				$dup[$index] = [$report["id"]];
+			}
+			++$count;
+			if(strlen($message) > 50){
+				$message = substr($message, 0, 50) . "...";
+			}
+			$results .= "<tr><td>".$report["id"]."</td><td>".$report["version"]."</td><td>".$message."</td><td><a href='/view/".$report["id"]."'class='btn btn-xs btn-primary'>-&gt;</a></td></tr>";
+		}
+		$tpl->addTransform("show", $count);
+		$tpl->addTransform("count", $reports->num_rows);
+		$tpl->addTransform("reports", $results);
+		$page[] = $tpl;
+
+		break;
 	case "submit":
 		if(isset($_POST["report"])){
 			require_once("src/CrashReport.php");
@@ -133,26 +241,38 @@ switch($main === "" ? "home" : $main){
 					$error->addTransform("url", "/submit");
 					$page[] = $error;
 				}else{
+					$db = new Database();
 					require_once("src/ReportHandler.php");
 					$handler = new ReportHandler($report, $isAPI);
 					$tpl = $handler->showDetails($page);
 					$encoded = $report->getEncoded();
 					//$hash = $report->getDate() . $encoded . microtime(true);
-					$reportId = getNextId(); //placeholder :P
-					$data = [
-						"report" => $encoded,
-						"reportId" => $reportId,
-						"email" => $_POST["email"],
-						"name" => clean($_POST["name"]),
-						"attachedIssue" => false
-					];
+					$reportId = $db->insertReport($report);
+					if($reportId <= 0){
+						$error = new Template("error", $isAPI);
+						$error->addTransform("message", "Internal error");
+						$error->addTransform("url", "/submit");
+						$page[] = $error;
+					}else{
+						$data = [
+							"report" => $encoded,
+							"reportId" => $reportId,
+							"email" => $_POST["email"],
+							"name" => clean($_POST["name"]),
+							"attachedIssue" => false
+						];
 
-					@file_put_contents("reports/". sha1($reportId . SECRET_SALT) . ".log", json_encode($data));
-					header("Location: /view/$reportId" . ($isAPI ? "/api":""));
-					$tpl->addTransform("crash_id", $reportId);
-					$tpl->addTransform("email_hash", md5($_POST["email"]));
-					$tpl->addTransform("name", clean($_POST["name"]));
-					$tpl->addTransform("attached_issue", "None");
+						@file_put_contents("reports/". sha1($reportId . SECRET_SALT) . ".log", json_encode($data));
+						header("Location: /view/$reportId" . ($isAPI ? "/api":""));
+						$tpl->addTransform("crash_id", $reportId);
+						$tpl->addTransform("email_hash", md5($_POST["email"]));
+						$tpl->addTransform("name", $name = clean($_POST["name"]));
+						$tpl->addTransform("attached_issue", "None");
+
+						if(WEBHOOK_URL !== null){
+							@file_get_contents(WEBHOOK_URL . urlencode("[Crash] New report #$reportId from $name: ". $report->getReportName().". Details: http://".ROOT_DOMAIN."/view/$reportId"));
+						}
+					}
 				}
 			}else{
 				$error = new Template("error", $isAPI);

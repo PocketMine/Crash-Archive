@@ -44,32 +44,9 @@ class ReportHandler{
 		$tpl->addTransform("date", date("l d/m/Y H:i:s", $this->report->getDate()));
 
 		//Error information
-		switch($this->report->getReportType()){
-			case CrashReport::TYPE_OPERAND_TYPE:
-				$errorTitle = "Operand type error";
-				break;
-			case CrashReport::TYPE_CLASS_VISIBILITY:
-				$errorTitle = "Class visibility error";
-				break;
-			case CrashReport::TYPE_INVALID_ARGUMENT:
-				$errorTitle = "Invalid argument error";
-				break;
-			case CrashReport::TYPE_OUT_OF_MEMORY:
-				$errorTitle = "Out of memory error";
-				break;
-			case CrashReport::TYPE_UNDEFINED_CALL:
-				$errorTitle = "Undefined call error";
-				break;
-			case CrashReport::TYPE_CLASS_NOT_FOUND:
-				$errorTitle = "Class not found error";
-				break;
-			case CrashReport::TYPE_UNKNOWN:
-				$errorTitle = "Unknown error";
-				break;
-			default:
-				$errorTitle = clean(ucfirst($this->report->getReportType())) . " error";
-		}
-		$tpl->addTransform("error_title", $errorTitle);
+
+
+		$tpl->addTransform("error_title", $this->report->getReportName());
 		$tpl->addTransform("error_level", clean($this->report->getType()));
 		$tpl->addTransform("error_file", clean($this->report->getFile()));
 		$tpl->addTransform("error_line", clean($this->report->getLine()));
