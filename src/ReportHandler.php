@@ -67,28 +67,34 @@ class ReportHandler{
 		}
 		$tpl->addTransform("code", $code);
 
+		if($this->isAPI === false){
+			$plugins = "";
+			foreach($this->report->getPlugins() as $data){
+				if($data->enabled){
+					$enabled = "<b>Enabled</b>";
+				}else{
+					$enabled = "Disabled";
+				}
+	
+				if($data->website !== NULL){
+					$name = '<a href="'.$data->website.'" rel="nofollow" target="_blank">'.$data->name.'</a>';
+				}else{
+					$name = $data->name;
+				}
 
-		$plugins = "";
-		foreach($this->report->getPlugins() as $data){
-			if($data->enabled){
-				$enabled = "<b>Enabled</b>";
-			}else{
-				$enabled = "Disabled";
+				$plugins .= "<tr>";
+				$plugins .= "<td>{$name}</td><td>{$data->version}</td><td>{$enabled}</td><td>".implode(", ", $data->authors)."</td>";
+				$plugins .= "</tr>";
 			}
-
-			if($data->website !== NULL){
-				$name = '<a href="'.$data->website.'" rel="nofollow" target="_blank">'.$data->name.'</a>';
-			}else{
-				$name = $data->name;
-			}
-
-			$plugins .= "<tr>";
-			$plugins .= "<td>{$name}</td><td>{$data->version}</td><td>{$enabled}</td><td>".implode(", ", $data->authors)."</td>";
-			$plugins .= "</tr>";
+			$tpl->addTransform("plugins", $plugins);
+		} else {
+			$tpl->addTransform("plugins", json_encode($this->report->getPlugins(), JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 		}
-		$tpl->addTransform("plugins", $plugins);
-
-		$settings = "";
+		if($isAPI === false){
+			$settings = "";
+		} else {
+			$settings = array();
+		}
 		foreach(explode("\n", $this->report->getProperties()) as $line){
 			$line = trim($line);
 			if($line === "" or $line{0} === "#"){
@@ -97,7 +103,12 @@ class ReportHandler{
 			$line = explode("=", $line);
 			$key = array_shift($line);
 			$value = implode("=", $line);
-			$settings .= "<tr><td>{$key}</td><td>{$value}</td></tr>";
+			if($this->isAPI === false){
+				$settings .= "<tr><td>{$key}</td><td>{$value}</td></tr>";	
+			} else {
+				$settings[$key] = $value;
+			}
+			
 		}
 
 		$yml = yaml_parse($this->report->getSettings());
@@ -125,10 +136,16 @@ class ReportHandler{
 						$value = "false";
 					}
 				}
-
-				$settings .= "<tr><td>{$key}</td><td>{$value}</td></tr>";
+				if($this->isAPI === false){
+					$settings .= "<tr><td>{$key}</td><td>{$value}</td></tr>";
+				} else {
+					$settings[$key] = $value; 
+				}
 			}
 
+		}
+		if($this->isAPI === true){
+			$settings = json_encode($settings);
 		}
 		$tpl->addTransform("settings", $settings);
 
